@@ -15,8 +15,11 @@ export interface UserPreferences {
 export interface PreferenceExtraction {
   ageMin: number | null;
   ageMax: number | null;
-  heightMinCm: number | null;
-  heightMaxCm: number | null;
+  heightMin: string | null; 
+  heightMax: string | null; 
+  heightMinCm: number | null; 
+  heightMaxCm: number | null; 
+  education: string | null; 
   educationLevel: number | null;
   occupation: string | null;
   city: string | null;

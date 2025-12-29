@@ -78,7 +78,7 @@ export const PreferenceSchema = z.object({
 });
 
 export const preferenceExtractionAgent = new ToolLoopAgent({
-  model: openrouter("openai/gpt-4o-mini"),
+  model: openrouter("openai/gpt-5-nano"),
   output: Output.object({
     schema: PreferenceSchema,
   }),
@@ -89,12 +89,29 @@ export function normalizePreferences(preferences: z.infer<typeof PreferenceSchem
   const heightMinCm = preferences.heightMin ? parseHeightToCm(preferences.heightMin) : null;
   const heightMaxCm = preferences.heightMax ? parseHeightToCm(preferences.heightMax) : null;
 
+  const educationLevelNames: Record<number, string> = {
+    1: 'Below 10th',
+    2: '10th Pass',
+    3: '12th Pass',
+    4: 'Diploma',
+    5: 'Undergraduate',
+    6: 'Graduate',
+    7: 'Postgraduate',
+    8: 'Doctorate',
+  };
+  const education = preferences.educationLevel
+    ? educationLevelNames[preferences.educationLevel] || null
+    : null;
+
   return {
     ageMin: preferences.ageMin,
     ageMax: preferences.ageMax,
+    heightMin: preferences.heightMin, 
+    heightMax: preferences.heightMax, 
     heightMinCm,
     heightMaxCm,
-    educationLevel: preferences.educationLevel,
+    education, 
+    educationLevel: preferences.educationLevel, 
     occupation: preferences.occupation,
     city: preferences.city,
     citizenship: preferences.citizenship,

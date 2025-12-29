@@ -1,8 +1,4 @@
-import type {
-  WhatsAppMessage,
-  WhatsAppInteractive,
-} from "../types/whatsapp.types.js";
-import type { FlowType } from "../types/conversation.types.js";
+import type { WhatsAppMessage } from "../types/whatsapp.types.js";
 import { ConversationService } from "../services/conversation.service.js";
 import { UserService } from "../services/user.service.js";
 import { WhatsAppService } from "../services/whatsapp.service.js";
@@ -10,6 +6,8 @@ import { FlowHandler } from "../flows/flow-handler.js";
 import { CreateUserFlow } from "../flows/admin/create-user.flow.js";
 import { UpdateBiodataFlow } from "../flows/admin/update-biodata.flow.js";
 import { RemoveUserFlow } from "../flows/admin/remove-user.flow.js";
+import { IntentDetectionService } from "../services/intent-detection.service.js";
+import { GlobalEvent, FlowEvent } from "../types/intent.types.js";
 
 export class MessageProcessor {
   static async process(
@@ -17,13 +15,26 @@ export class MessageProcessor {
     message: WhatsAppMessage,
   ): Promise<void> {
     const state = await ConversationService.getState(phoneNumber);
+    const isAdmin = await UserService.isAdmin(phoneNumber);
 
-    if (
-      message.type === "text" &&
-      message.text?.body.toLowerCase().trim() === "end"
-    ) {
-      await this.handleEndCommand(phoneNumber, state !== null);
-      return;
+    if (message.type === "text" && message.text?.body) {
+      const intent = await IntentDetectionService.detectMenuIntent(
+        message,
+        isAdmin,
+      );
+
+      if (
+        intent.event === GlobalEvent.END_FLOW &&
+        intent.confidence >= 0.6
+      ) {
+        await this.handleEndCommand(phoneNumber, state !== null);
+        return;
+      }
+
+      if (intent.event === GlobalEvent.HELP && intent.confidence >= 0.6) {
+        await this.handleHelpCommand(phoneNumber, isAdmin, state !== null);
+        return;
+      }
     }
 
     if (state) {
@@ -41,7 +52,7 @@ export class MessageProcessor {
       await ConversationService.clearState(phoneNumber);
       await WhatsAppService.sendTextMessage(
         phoneNumber,
-        "❌ Current flow cancelled. You can start a new action anytime.",
+        "Thank you for using our service! We have closed your conversation.",
       );
     } else {
       await WhatsAppService.sendTextMessage(
@@ -51,41 +62,45 @@ export class MessageProcessor {
     }
   }
 
+  private static async handleHelpCommand(
+    phoneNumber: string,
+    isAdmin: boolean,
+    hasActiveFlow: boolean,
+  ): Promise<void> {
+    if (hasActiveFlow) {
+      await WhatsAppService.sendTextMessage(
+        phoneNumber,
+        "💡 You're currently in a flow. Type 'end' or 'cancel' to exit, or continue with the current flow.",
+      );
+    }
+
+    if (isAdmin) {
+      await WhatsAppService.sendTemplateMessage(
+        phoneNumber,
+        "matchmaking_admin",
+      );
+    } else {
+      await this.showUserMenu(phoneNumber);
+    }
+  }
+
   private static async handleNewMessage(
     phoneNumber: string,
     message: WhatsAppMessage,
   ): Promise<void> {
     const isAdmin = await UserService.isAdmin(phoneNumber);
 
-    if (message.type === "text" && message.text?.body) {
-      await this.handleTextMessage(phoneNumber, message.text.body, isAdmin);
-    } else if (message.type === "button" && message.button) {
-      await this.handleButtonMessage(
-        phoneNumber,
-        message.button.payload,
-        isAdmin,
-      );
-    } else if (message.type === "interactive" && message.interactive) {
-      await this.handleInteractiveMessage(
-        phoneNumber,
-        message.interactive,
-        isAdmin,
-      );
-    } else {
-      if (!isAdmin) {
-        await this.showUserMenu(phoneNumber);
-      }
-    }
-  }
+    const intent = await IntentDetectionService.detectMenuIntent(
+      message,
+      isAdmin,
+    );
 
-  private static async handleTextMessage(
-    phoneNumber: string,
-    messageText: string,
-    isAdmin: boolean,
-  ): Promise<void> {
-    const lowerCaseText = messageText.toLowerCase().trim();
+    if (intent.confidence < 0.6) {
+      await WhatsAppService.sendTextMessage(
+        phoneNumber,
+        "I didn't quite understand that. Please choose from the options below:",
+      );
 
-    if (lowerCaseText === "hello") {
       if (isAdmin) {
         await WhatsAppService.sendTemplateMessage(
           phoneNumber,
@@ -94,103 +109,143 @@ export class MessageProcessor {
       } else {
         await this.showUserMenu(phoneNumber);
       }
-    } else if (
-      lowerCaseText === "set preferences" ||
-      lowerCaseText === "set preference"
-    ) {
-      if (isAdmin) {
-        await WhatsAppService.sendTextMessage(
-          phoneNumber,
-          "Admins don't need to set preferences. This feature is for users only.",
-        );
-      } else {
-        const { SetPreferencesFlow } = await import(
-          "../flows/user/set-preferences.flow.js"
-        );
-        await SetPreferencesFlow.initialize(phoneNumber);
-      }
-    } else if (
-      lowerCaseText === "find matches" ||
-      lowerCaseText === "find match"
-    ) {
-      if (isAdmin) {
-        await WhatsAppService.sendTextMessage(
-          phoneNumber,
-          "Admins don't search for matches. This feature is for users only.",
-        );
-      } else {
-        const { FindMatchesFlow } = await import(
-          "../flows/user/find-matches.flow.js"
-        );
-        await FindMatchesFlow.initialize(phoneNumber);
-      }
-    } else {
-      if (!isAdmin) {
-        await this.showUserMenu(phoneNumber);
-      } else {
-        await WhatsAppService.sendTextMessage(
-          phoneNumber,
-          `Echo: ${messageText}`,
-        );
-      }
-    }
-  }
-
-  private static async handleButtonMessage(
-    phoneNumber: string,
-    payload: string,
-    isAdmin: boolean,
-  ): Promise<void> {
-    if (!isAdmin) {
-      await WhatsAppService.sendTextMessage(
-        phoneNumber,
-        "You don't have permission to perform this action.",
-      );
       return;
     }
 
-    const flow = this.getFlowFromPayload(payload);
-    if (flow) {
-      await this.startFlow(phoneNumber, flow);
-    } else {
-      await WhatsAppService.sendTextMessage(
-        phoneNumber,
-        "Unknown button action.",
-      );
+    if (intent.event === GlobalEvent.HELP) {
+      if (isAdmin) {
+        await WhatsAppService.sendTemplateMessage(
+          phoneNumber,
+          "matchmaking_admin",
+        );
+      } else {
+        await this.showUserMenu(phoneNumber);
+      }
+      return;
     }
+
+    if (intent.event === GlobalEvent.GREETING) {
+      if (isAdmin) {
+        await WhatsAppService.sendTemplateMessage(
+          phoneNumber,
+          "matchmaking_admin",
+        );
+      } else {
+        await this.showUserMenu(phoneNumber);
+      }
+      return;
+    }
+
+    await this.initializeFlowFromIntent(phoneNumber, intent.event, isAdmin);
   }
 
-  private static getFlowFromPayload(payload: string): FlowType | null {
-    switch (payload) {
-      case "Create New User":
-        return "CREATE_USER";
-      case "Update Biodata":
-        return "UPDATE_BIO";
-      case "Remove Biodata":
-        return "REMOVE_USER";
-      default:
-        return null;
-    }
-  }
-
-  private static async startFlow(
+  private static async initializeFlowFromIntent(
     phoneNumber: string,
-    flow: FlowType,
+    event: string,
+    isAdmin: boolean,
   ): Promise<void> {
     try {
-      switch (flow) {
-        case "CREATE_USER":
+      switch (event) {
+        case FlowEvent.SET_PREFERENCES:
+          if (isAdmin) {
+            await WhatsAppService.sendTextMessage(
+              phoneNumber,
+              "Admins don't need to set preferences. This feature is for users only.",
+            );
+            return;
+          }
+          const { SetPreferencesFlow } = await import(
+            "../flows/user/set-preferences.flow.js"
+          );
+          await SetPreferencesFlow.initialize(phoneNumber);
+          break;
+
+        case FlowEvent.FIND_MATCHES:
+          if (isAdmin) {
+            await WhatsAppService.sendTextMessage(
+              phoneNumber,
+              "Admins don't search for matches. This feature is for users only.",
+            );
+            return;
+          }
+          const { FindMatchesFlow } = await import(
+            "../flows/user/find-matches.flow.js"
+          );
+          await FindMatchesFlow.initialize(phoneNumber);
+          break;
+
+        case FlowEvent.VIEW_BIO:
+          const { ViewBioFlow } = await import(
+            "../flows/user/view-bio.flow.js"
+          );
+          await ViewBioFlow.execute(phoneNumber);
+          break;
+
+        case FlowEvent.DELETE_ACCOUNT:
+          const { DeleteAccountFlow } = await import(
+            "../flows/user/delete-account.flow.js"
+          );
+          await DeleteAccountFlow.initialize(phoneNumber);
+          break;
+
+        // Admin flows
+        case FlowEvent.CREATE_USER:
+          if (!isAdmin) {
+            await WhatsAppService.sendTextMessage(
+              phoneNumber,
+              "You don't have permission to perform this action.",
+            );
+            return;
+          }
           await CreateUserFlow.initialize(phoneNumber);
           break;
-        case "UPDATE_BIO":
+
+        case FlowEvent.UPDATE_BIO:
+          if (!isAdmin) {
+            await WhatsAppService.sendTextMessage(
+              phoneNumber,
+              "You don't have permission to perform this action.",
+            );
+            return;
+          }
           await UpdateBiodataFlow.initialize(phoneNumber);
           break;
-        case "REMOVE_USER":
+
+        case FlowEvent.REMOVE_USER:
+          if (!isAdmin) {
+            await WhatsAppService.sendTextMessage(
+              phoneNumber,
+              "You don't have permission to perform this action.",
+            );
+            return;
+          }
           await RemoveUserFlow.initialize(phoneNumber);
           break;
+
+        case "UNKNOWN":
+          if (isAdmin) {
+            await WhatsAppService.sendTemplateMessage(
+              phoneNumber,
+              "matchmaking_admin",
+            );
+          } else {
+            await this.showUserMenu(phoneNumber);
+          }
+          break;
+
+        default:
+          console.warn(`Unhandled intent event: ${event}`);
+          if (isAdmin) {
+            await WhatsAppService.sendTemplateMessage(
+              phoneNumber,
+              "matchmaking_admin",
+            );
+          } else {
+            await this.showUserMenu(phoneNumber);
+          }
       }
     } catch (error) {
-      console.error("Error starting flow:", error);
+      console.error("Error initializing flow from intent:", error);
       await WhatsAppService.sendTextMessage(
         phoneNumber,
         "Sorry, an error occurred. Please try again.",
@@ -211,67 +266,8 @@ export class MessageProcessor {
         { id: "SET_PREFERENCES", title: "Set Preferences" },
         { id: "FIND_MATCHES", title: "Find Matches" },
         { id: "VIEW_BIO", title: "View My Bio" },
+        { id: "DELETE_ACCOUNT", title: "Delete Account" },
       ],
     );
-  }
-
-  private static async handleInteractiveMessage(
-    phoneNumber: string,
-    interactive: WhatsAppInteractive,
-    isAdmin: boolean,
-  ): Promise<void> {
-    if (interactive.type !== "button_reply" || !interactive.button_reply) {
-      return;
-    }
-
-    const buttonId = interactive.button_reply.id;
-
-    if (isAdmin) {
-      await WhatsAppService.sendTextMessage(
-        phoneNumber,
-        "This menu is for users only. Admins should use the admin template.",
-      );
-      return;
-    }
-
-    switch (buttonId) {
-      case "SET_PREFERENCES":
-        const { SetPreferencesFlow } = await import(
-          "../flows/user/set-preferences.flow.js"
-        );
-        await SetPreferencesFlow.initialize(phoneNumber);
-        break;
-
-      case "FIND_MATCHES":
-        const { FindMatchesFlow } = await import(
-          "../flows/user/find-matches.flow.js"
-        );
-        await FindMatchesFlow.initialize(phoneNumber);
-        break;
-
-      case "VIEW_BIO":
-        const { ViewBioFlow } = await import("../flows/user/view-bio.flow.js");
-        await ViewBioFlow.execute(phoneNumber);
-        break;
-
-      case "DELETE_ACCOUNT":
-        const { DeleteAccountFlow } = await import(
-          "../flows/user/delete-account.flow.js"
-        );
-        await DeleteAccountFlow.initialize(phoneNumber);
-        break;
-
-      case "MORE_MATCHES":
-      case "NO_MORE_MATCHES":
-        console.log("Match response button received outside of flow context");
-        break;
-
-      default:
-        await WhatsAppService.sendTextMessage(
-          phoneNumber,
-          "Unknown option. Please try again.",
-        );
-        await this.showUserMenu(phoneNumber);
-    }
   }
 }

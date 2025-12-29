@@ -78,7 +78,7 @@ export const BiodataSchema = z.object({
 });
 
 export const biodataExtractionAgent = new ToolLoopAgent({
-  model: openrouter("openai/gpt-5-mini"),
+  model: openrouter("openai/gpt-5-nano"),
   output: Output.object({
     schema: BiodataSchema,
   }),
