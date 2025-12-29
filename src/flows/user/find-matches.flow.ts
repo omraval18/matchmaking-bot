@@ -28,10 +28,11 @@ export class FindMatchesFlow {
       );
 
       console.log(`[FIND MATCHES FLOW] Calling MatchService.findMatches for userId: ${user.id}`);
-      const matches = await MatchService.findMatches(user.id, 3);
-      console.log(`[FIND MATCHES FLOW] Received ${matches.length} matches from service`);
+      // Fetch 4 matches to check if there are more available
+      const allMatches = await MatchService.findMatches(user.id, 4);
+      console.log(`[FIND MATCHES FLOW] Received ${allMatches.length} matches from service`);
 
-      if (matches.length === 0) {
+      if (allMatches.length === 0) {
         console.log(`[FIND MATCHES FLOW] No matches found - sending empty message`);
         await WhatsAppService.sendTextMessage(
           userPhone,
@@ -40,22 +41,34 @@ export class FindMatchesFlow {
         return;
       }
 
-      console.log(`[FIND MATCHES FLOW] Sending ${matches.length} matches to user`);
-      await this.sendMatches(userPhone, matches);
+      // Show only first 3 matches
+      const matchesToShow = allMatches.slice(0, 3);
+      const hasMoreMatches = allMatches.length > 3;
 
-      await WhatsAppService.sendInteractiveButtons(
-        userPhone,
-        "Would you like to see more matches?",
-        [
-          { id: "MORE_MATCHES", title: "More Matches" },
-          { id: "NO_MORE_MATCHES", title: "No, I'm Okay" },
-        ],
-      );
+      console.log(`[FIND MATCHES FLOW] Sending ${matchesToShow.length} matches to user, hasMore: ${hasMoreMatches}`);
+      await this.sendMatches(userPhone, matchesToShow);
 
-      await ConversationService.startFlow(userPhone, "FIND_MATCHES", {
-        matchesShown: 3,
-      });
-      await ConversationService.updateStep(userPhone, "SHOWING_MATCHES");
+      // Only show "More Matches" button if there are actually more matches
+      if (hasMoreMatches) {
+        await WhatsAppService.sendInteractiveButtons(
+          userPhone,
+          "Would you like to see more matches?",
+          [
+            { id: "MORE_MATCHES", title: "More Matches" },
+            { id: "NO_MORE_MATCHES", title: "No, I'm Okay" },
+          ],
+        );
+
+        await ConversationService.startFlow(userPhone, "FIND_MATCHES", {
+          matchesShown: 3,
+        });
+        await ConversationService.updateStep(userPhone, "SHOWING_MATCHES");
+      } else {
+        await WhatsAppService.sendTextMessage(
+          userPhone,
+          "✅ That's all the matches we have for you right now!\n\nCheck back later or update your preferences to see different profiles.",
+        );
+      }
       console.log(`[FIND MATCHES FLOW] ✅ Flow completed successfully`);
     } catch (error) {
       console.error("[FIND MATCHES FLOW] ❌ Error finding matches:", error);
@@ -84,21 +97,13 @@ export class FindMatchesFlow {
   ): Promise<void> {
     console.log(`[FLOW] Handling FIND_MATCHES flow, step: SHOWING_MATCHES, phone: ${userPhone}`);
 
-    if (message.type !== "button" || !message.button || message.button.payload !== "MORE_MATCHES") {
-      console.log(`[FLOW] Ending flow - received non-button or non-MORE_MATCHES response`);
+    // Get the button ID from interactive message
+    const buttonId = message.interactive?.button_reply?.id;
+    console.log(`[FLOW] Button ID received: ${buttonId}`);
 
-      if (message.type === "button" && message.button?.payload === "NO_MORE_MATCHES") {
-        await WhatsAppService.sendTextMessage(
-          userPhone,
-          "✅ Great! If you'd like to see matches again, just type 'find matches'.\n\nGood luck with your search! 💫",
-        );
-      }
-
-      await ConversationService.clearState(userPhone);
-      return;
-    }
-
-    console.log(`[FLOW] User wants more matches`);
+    // If it's the "More Matches" button, continue showing matches
+    if (buttonId === "MORE_MATCHES") {
+      console.log(`[FLOW] User wants more matches`);
 
     const user = await UserService.getUserByPhone(userPhone);
     if (!user) {
@@ -116,9 +121,12 @@ export class FindMatchesFlow {
         "🔍 Finding more matches...",
       );
 
-      const matches = await MatchService.findMatches(user.id, 3);
+      const matchesShown = (data.matchesShown as number) || 3;
 
-      if (matches.length === 0) {
+      // Fetch 4 matches to check if there are more available beyond these 3
+      const allMatches = await MatchService.findMatches(user.id, 4, matchesShown);
+
+      if (allMatches.length === 0) {
         await WhatsAppService.sendTextMessage(
           userPhone,
           "😕 No more matches available at the moment.\n\nCheck back later or update your preferences to see different profiles!",
@@ -127,27 +135,52 @@ export class FindMatchesFlow {
         return;
       }
 
-      await this.sendMatches(userPhone, matches);
+      // Show only first 3 matches from the batch
+      const matchesToShow = allMatches.slice(0, 3);
+      const hasMoreMatches = allMatches.length > 3;
 
-      await WhatsAppService.sendInteractiveButtons(
-        userPhone,
-        "Would you like to see more matches?",
-        [
-          { id: "MORE_MATCHES", title: "More Matches" },
-          { id: "NO_MORE_MATCHES", title: "No, I'm Okay" },
-        ],
-      );
+      await this.sendMatches(userPhone, matchesToShow);
 
-      const matchesShown = (data.matchesShown as number) || 3;
-      await ConversationService.updateStep(userPhone, "SHOWING_MATCHES", {
-        matchesShown: matchesShown + 3,
-      });
+      // Only show "More Matches" button if there are actually more matches
+      if (hasMoreMatches) {
+        await WhatsAppService.sendInteractiveButtons(
+          userPhone,
+          "Would you like to see more matches?",
+          [
+            { id: "MORE_MATCHES", title: "More Matches" },
+            { id: "NO_MORE_MATCHES", title: "No, I'm Okay" },
+          ],
+        );
+
+        await ConversationService.updateStep(userPhone, "SHOWING_MATCHES", {
+          matchesShown: matchesShown + 3,
+        });
+      } else {
+        await WhatsAppService.sendTextMessage(
+          userPhone,
+          "✅ That's all the matches we have for you right now!\n\nCheck back later or update your preferences to see different profiles.",
+        );
+        await ConversationService.clearState(userPhone);
+      }
     } catch (error) {
       console.error("Error finding more matches:", error);
-      await WhatsAppService.sendTextMessage(
-        userPhone,
-        "Sorry, there was an error finding more matches. Please try again later.",
-      );
+        await WhatsAppService.sendTextMessage(
+          userPhone,
+          "Sorry, there was an error finding more matches. Please try again later.",
+        );
+        await ConversationService.clearState(userPhone);
+      }
+    } else {
+      // User clicked "No, I'm Okay" or sent any other message - end the flow
+      console.log(`[FLOW] Ending flow - user chose not to see more matches or sent other message`);
+
+      if (buttonId === "NO_MORE_MATCHES") {
+        await WhatsAppService.sendTextMessage(
+          userPhone,
+          "✅ Great! If you'd like to see matches again, just type 'find matches'.\n\nGood luck with your search! 💫",
+        );
+      }
+
       await ConversationService.clearState(userPhone);
     }
   }

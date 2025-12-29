@@ -3,8 +3,8 @@ import { bios, users, preferences } from "../lib/db/schema.js";
 import { eq, and, gte, lte, sql, ne } from "drizzle-orm";
 
 export class MatchService {
-  static async findMatches(userId: number, limit: number = 3): Promise<any[]> {
-    console.log(`[MATCH SERVICE] Finding matches for userId: ${userId}`);
+  static async findMatches(userId: number, limit: number = 3, offset: number = 0): Promise<any[]> {
+    console.log(`[MATCH SERVICE] Finding matches for userId: ${userId}, limit: ${limit}, offset: ${offset}`);
     
     const userBio = await db
       .select()
@@ -134,6 +134,7 @@ export class MatchService {
       .from(bios)
       .innerJoin(users, eq(bios.userId, users.id))
       .where(and(...conditions))
+      .offset(offset)
       .limit(limit);
 
     console.log(`[MATCH SERVICE] ✅ Found ${matches.length} matches`);
