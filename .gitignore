@@ -26,5 +26,5 @@ lerna-debug.log*
 
 # misc
 .DS_Store
-
+/dist
 /src/generated/prisma
