@@ -1,1 +1,0 @@
-ALTER TABLE "conversation_states" DROP CONSTRAINT "conversation_states_id_unique";

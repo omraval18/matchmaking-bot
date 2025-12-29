@@ -1,5 +1,24 @@
 import { db } from "../src/lib/db/index.js";
 import { users, bios } from "../src/lib/db/schema.js";
+import { parseHeightToCm } from "../src/utils/height.utils.js";
+
+function getEducationLevel(education: string): number {
+  const edu = education.toLowerCase();
+  if (edu.includes('phd') || edu.includes('ph.d') || edu.includes('doctorate')) return 8;
+  if (edu.includes('m.tech') || edu.includes('mtech') || edu.includes('mba') ||
+      edu.includes('m.sc') || edu.includes('msc') || edu.includes('m.com') ||
+      edu.includes('mcom') || edu.includes('ma') || edu.includes('ms ') ||
+      edu.includes('md') || edu.includes('postgraduate')) return 7;
+  if (edu.includes('b.tech') || edu.includes('btech') || edu.includes('b.e') ||
+      edu.includes('be ') || edu.includes('bba') || edu.includes('bca') ||
+      edu.includes('b.sc') || edu.includes('bsc') || edu.includes('b.com') ||
+      edu.includes('bcom') || edu.includes('ba ') || edu.includes('mbbs') ||
+      edu.includes('ca') || edu.includes('graduate')) return 6;
+  if (edu.includes('diploma') || edu.includes('polytechnic') || edu.includes('iti')) return 4;
+  if (edu.includes('12') || edu.includes('hsc') || edu.includes('intermediate')) return 3;
+  if (edu.includes('10') || edu.includes('ssc')) return 2;
+  return 6; 
+}
 
 const testProfiles = [
   {
@@ -353,7 +372,13 @@ async function seed() {
 
       console.log(`✓ Created user: ${profile.phone}`);
 
-      // Insert biodata for the user
+      const heightCm = parseHeightToCm(profile.biodata.height);
+      const educationLevel = getEducationLevel(profile.biodata.education);
+
+      if (!heightCm) {
+        throw new Error(`Invalid height format: ${profile.biodata.height}`);
+      }
+
       await db.insert(bios).values({
         userId: user.id,
         firstName: profile.biodata.firstName,
@@ -366,9 +391,11 @@ async function seed() {
         currentCity: profile.biodata.currentCity || null,
         citizenship: profile.biodata.citizenship,
         education: profile.biodata.education,
+        educationLevel: educationLevel,
         occupation: profile.biodata.occupation,
         company: profile.biodata.company || null,
         height: profile.biodata.height,
+        heightCm: heightCm,
         diet: profile.biodata.diet || null,
         extra: profile.biodata.extra,
         url: profile.biodata.url,

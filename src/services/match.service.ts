@@ -55,21 +55,19 @@ export class MatchService {
         activeFilters.push(`ageMax: ${prefs.ageMax}`);
       }
 
-      if (prefs.heightMin) {
-        conditions.push(gte(bios.height, prefs.heightMin));
-        activeFilters.push(`heightMin: ${prefs.heightMin}`);
+      if (prefs.heightMinCm) {
+        conditions.push(gte(bios.heightCm, prefs.heightMinCm));
+        activeFilters.push(`heightMinCm: ${prefs.heightMinCm}`);
       }
 
-      if (prefs.heightMax) {
-        conditions.push(lte(bios.height, prefs.heightMax));
-        activeFilters.push(`heightMax: ${prefs.heightMax}`);
+      if (prefs.heightMaxCm) {
+        conditions.push(lte(bios.heightCm, prefs.heightMaxCm));
+        activeFilters.push(`heightMaxCm: ${prefs.heightMaxCm}`);
       }
 
-      if (prefs.education) {
-        conditions.push(
-          sql`LOWER(${bios.education}) LIKE LOWER(${"%" + prefs.education + "%"})`,
-        );
-        activeFilters.push(`education: ${prefs.education}`);
+      if (prefs.educationLevel) {
+        conditions.push(gte(bios.educationLevel, prefs.educationLevel));
+        activeFilters.push(`educationLevel: ${prefs.educationLevel}`);
       }
 
       if (prefs.occupation) {

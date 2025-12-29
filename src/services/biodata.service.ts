@@ -1,7 +1,7 @@
 import { db } from "../lib/db/index.js";
 import { bios } from "../lib/db/schema.js";
 import { eq } from "drizzle-orm";
-import { biodataExtractionAgent } from "../ai/bio-data-extraction-agent.js";
+import { biodataExtractionAgent, normalizeBiodata } from "../ai/bio-data-extraction-agent.js";
 import { BIODATA_EXTRACTION_PROMPT } from "../ai/prompts/extraction-prompt.js";
 import type { BiodataExtraction } from "../types/biodata.types.js";
 
@@ -49,23 +49,27 @@ export class BiodataService {
     userId: number,
     data: BiodataExtraction,
   ): Promise<void> {
+    const normalized = normalizeBiodata(data);
+
     await db.insert(bios).values({
       userId,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      gender: data.gender,
-      age: data.age,
-      dateOfBirth: data.dateOfBirth,
-      city: data.city,
-      caste: data.caste,
-      currentCity: data.currentCity,
-      citizenship: data.citizenship,
-      education: data.education,
-      occupation: data.occupation,
-      company: data.company,
-      height: data.height,
-      diet: data.diet,
-      extra: data.extra || {},
+      firstName: normalized.firstName,
+      lastName: normalized.lastName,
+      gender: normalized.gender,
+      age: normalized.age,
+      dateOfBirth: normalized.dateOfBirth,
+      city: normalized.city,
+      caste: normalized.caste,
+      currentCity: normalized.currentCity,
+      citizenship: normalized.citizenship,
+      education: normalized.education,
+      educationLevel: normalized.educationLevel,
+      occupation: normalized.occupation,
+      company: normalized.company,
+      height: normalized.height,
+      heightCm: normalized.heightCm,
+      diet: normalized.diet,
+      extra: normalized.extra || {},
       url: "",
     });
   }
@@ -74,24 +78,28 @@ export class BiodataService {
     userId: number,
     data: BiodataExtraction,
   ): Promise<void> {
+    const normalized = normalizeBiodata(data);
+
     await db
       .update(bios)
       .set({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        gender: data.gender,
-        age: data.age,
-        dateOfBirth: data.dateOfBirth,
-        city: data.city,
-        caste: data.caste,
-        currentCity: data.currentCity,
-        citizenship: data.citizenship,
-        education: data.education,
-        occupation: data.occupation,
-        company: data.company,
-        height: data.height,
-        diet: data.diet,
-        extra: data.extra || {},
+        firstName: normalized.firstName,
+        lastName: normalized.lastName,
+        gender: normalized.gender,
+        age: normalized.age,
+        dateOfBirth: normalized.dateOfBirth,
+        city: normalized.city,
+        caste: normalized.caste,
+        currentCity: normalized.currentCity,
+        citizenship: normalized.citizenship,
+        education: normalized.education,
+        educationLevel: normalized.educationLevel,
+        occupation: normalized.occupation,
+        company: normalized.company,
+        height: normalized.height,
+        heightCm: normalized.heightCm,
+        diet: normalized.diet,
+        extra: normalized.extra || {},
         url: "",
       })
       .where(eq(bios.userId, userId));

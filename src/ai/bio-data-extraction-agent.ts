@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ToolLoopAgent, Output, stepCountIs } from "ai";
 import { openrouter } from "./provider.js";
+import { parseHeightToCm } from "../utils/height.utils.js";
 
 export const BiodataSchema = z.object({
   firstName: z
@@ -35,7 +36,16 @@ export const BiodataSchema = z.object({
 
   citizenship: z.string().min(1).describe("Nationality or citizenship status"),
 
-  education: z.string().min(1).describe("Highest educational qualification"),
+  education: z.string().min(1).describe("Highest educational qualification (original text as mentioned in biodata)"),
+
+  educationLevel: z
+    .number()
+    .int()
+    .min(1)
+    .max(8)
+    .describe(
+      "Education level as integer: 1=Below 10th, 2=10th Pass, 3=12th Pass, 4=Diploma, 5=Undergraduate (pursuing), 6=Graduate (Bachelor's like BA, BSc, BTech, BBA, BCA, MBBS, etc.), 7=Postgraduate (Master's like MA, MSc, MTech, MBA, MCA, MD, MS, etc.), 8=Doctorate (PhD). Assign based on the highest qualification mentioned."
+    ),
 
   occupation: z.string().min(1).describe("Current occupation or profession"),
 
@@ -50,8 +60,11 @@ export const BiodataSchema = z.object({
     .describe("Height as mentioned in the biodata (e.g., 5'8\" or 173 cm)"),
 
   diet: z
-    .string()
-    .nullable()
+    .enum([
+      "Vegetarian",
+      "Non-Vegetarian",
+      "Jain",
+    ]).nullable()
     .describe(
       "Dietary preference such as Vegetarian, Non-Vegetarian, Jain, etc.",
     ),
@@ -72,22 +85,14 @@ export const biodataExtractionAgent = new ToolLoopAgent({
   stopWhen: stepCountIs(10),
 });
 
-// biodataExtractionAgent.generate({
-//   prompt:"",
-//   messages: [
-//     {
-//       role: "user",
-//       content: [
-//         {
-//           type: "text",
-//           text: "What is an embedding model according to this document?",
-//         },
-//         {
-//           type: "file",
-//           data: base64,
-//           mediaType: "application/pdf",
-//         },
-//       ],
-//     },
-//   ],
-// });
+export function normalizeBiodata(biodata: z.infer<typeof BiodataSchema>) {
+  const heightCm = parseHeightToCm(biodata.height);
+  if (!heightCm) {
+    throw new Error(`Invalid height format: ${biodata.height}`);
+  }
+
+  return {
+    ...biodata,
+    heightCm,
+  };
+}

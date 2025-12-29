@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ToolLoopAgent, Output, stepCountIs } from "ai";
 import { openrouter } from "./provider.js";
+import { parseHeightToCm } from "../utils/height.utils.js";
 
 export const PreferenceSchema = z.object({
   ageMin: z
@@ -31,11 +32,14 @@ export const PreferenceSchema = z.object({
       "Maximum height preference (e.g., '6\\'0\"', '180 cm'), if mentioned",
     ),
 
-  education: z
-    .string()
+  educationLevel: z
+    .number()
+    .int()
+    .min(1)
+    .max(8)
     .nullable()
     .describe(
-      "Educational qualification preference (e.g., 'Graduate', 'Post Graduate', 'MBA'), if mentioned",
+      "Minimum education level preference as integer: 1=Below 10th, 2=10th Pass, 3=12th Pass, 4=Diploma, 5=Undergraduate (pursuing), 6=Graduate (Bachelor's), 7=Postgraduate (Master's), 8=Doctorate (PhD). If user says 'at least graduate' or 'minimum graduate', use 6. If user says 'at least 12th pass', use 3. If not mentioned, use null."
     ),
 
   occupation: z
@@ -80,3 +84,22 @@ export const preferenceExtractionAgent = new ToolLoopAgent({
   }),
   stopWhen: stepCountIs(5),
 });
+
+export function normalizePreferences(preferences: z.infer<typeof PreferenceSchema>) {
+  const heightMinCm = preferences.heightMin ? parseHeightToCm(preferences.heightMin) : null;
+  const heightMaxCm = preferences.heightMax ? parseHeightToCm(preferences.heightMax) : null;
+
+  return {
+    ageMin: preferences.ageMin,
+    ageMax: preferences.ageMax,
+    heightMinCm,
+    heightMaxCm,
+    educationLevel: preferences.educationLevel,
+    occupation: preferences.occupation,
+    city: preferences.city,
+    citizenship: preferences.citizenship,
+    caste: preferences.caste,
+    diet: preferences.diet,
+    otherPreferences: preferences.otherPreferences,
+  };
+}

@@ -9,9 +9,10 @@ export interface BiodataExtraction {
   currentCity: string | null;
   citizenship: string;
   education: string;
+  educationLevel: number;
   occupation: string;
   company: string | null;
   height: string;
-  diet: string | null;
+  diet: "Vegetarian" | "Non-Vegetarian" | "Jain" | null;
   extra: Record<string, unknown>;
 }

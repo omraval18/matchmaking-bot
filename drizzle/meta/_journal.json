@@ -5,50 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1766744402547,
-      "tag": "0000_steep_nextwave",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1766761771990,
-      "tag": "0001_fluffy_mad_thinker",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1766769585113,
-      "tag": "0002_charming_zaran",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1766770311620,
-      "tag": "0003_milky_jean_grey",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1766770500727,
-      "tag": "0004_equal_war_machine",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1766770547762,
-      "tag": "0005_funny_thena",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1767016965396,
-      "tag": "0006_opposite_reptil",
+      "when": 1767035714791,
+      "tag": "0000_narrow_gamora",
       "breakpoints": true
     }
   ]

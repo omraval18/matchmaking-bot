@@ -1,7 +1,7 @@
 import { db } from "../lib/db/index.js";
 import { preferences } from "../lib/db/schema.js";
 import { eq } from "drizzle-orm";
-import { preferenceExtractionAgent } from "../ai/preference-extraction-agent.js";
+import { preferenceExtractionAgent, normalizePreferences } from "../ai/preference-extraction-agent.js";
 import { PREFERENCE_EXTRACTION_PROMPT } from "../ai/prompts/preference-extraction-prompt.js";
 import type { PreferenceExtraction } from "../types/preference.types.js";
 
@@ -20,7 +20,8 @@ export class PreferenceService {
       ],
     });
 
-    return result.output as PreferenceExtraction;
+    const extracted = result.output as any;
+    return normalizePreferences(extracted);
   }
 
   static async getPreferences(userId: number) {
@@ -45,9 +46,9 @@ export class PreferenceService {
         .set({
           ageMin: prefs.ageMin,
           ageMax: prefs.ageMax,
-          heightMin: prefs.heightMin,
-          heightMax: prefs.heightMax,
-          education: prefs.education,
+          heightMinCm: prefs.heightMinCm,
+          heightMaxCm: prefs.heightMaxCm,
+          educationLevel: prefs.educationLevel,
           occupation: prefs.occupation,
           city: prefs.city,
           citizenship: prefs.citizenship,
@@ -62,9 +63,9 @@ export class PreferenceService {
         userId,
         ageMin: prefs.ageMin,
         ageMax: prefs.ageMax,
-        heightMin: prefs.heightMin,
-        heightMax: prefs.heightMax,
-        education: prefs.education,
+        heightMinCm: prefs.heightMinCm,
+        heightMaxCm: prefs.heightMaxCm,
+        educationLevel: prefs.educationLevel,
         occupation: prefs.occupation,
         city: prefs.city,
         citizenship: prefs.citizenship,
