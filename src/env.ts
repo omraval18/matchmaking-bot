@@ -8,6 +8,7 @@ export const env = createEnv({
     WA_ACCESS_TOKEN: z.string().min(1),
     WA_VERIFY_TOKEN: z.string().min(1),
     WA_BUSINESS_ACCOUNT_ID: z.string().min(1),
+    OPENROUTER_API_KEY: z.string().min(1),
   },
 
   /**
@@ -29,6 +30,7 @@ export const env = createEnv({
     WA_ACCESS_TOKEN: process.env.WA_ACCESS_TOKEN,
     WA_VERIFY_TOKEN: process.env.WA_VERIFY_TOKEN,
     WA_BUSINESS_ACCOUNT_ID: process.env.WA_BUSINESS_ACCOUNT_ID,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
   },
 
   /**

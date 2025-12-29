@@ -43,6 +43,13 @@
       "when": 1766770547762,
       "tag": "0005_funny_thena",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1767016965396,
+      "tag": "0006_opposite_reptil",
+      "breakpoints": true
     }
   ]
 }

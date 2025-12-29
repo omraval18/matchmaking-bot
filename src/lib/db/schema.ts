@@ -16,6 +16,7 @@ export const bios = pgTable("bios", {
     .references(() => users.id, { onDelete: "cascade" }),
   firstName: t.varchar().notNull(),
   lastName: t.varchar().notNull(),
+  gender: t.varchar().notNull(),
   age: t.integer().notNull(),
   dateOfBirth: t.date().notNull(),
   city: t.varchar().notNull(),
@@ -48,6 +49,31 @@ export const conversationStates = pgTable("conversation_states", {
   flow: t.varchar().notNull(),
   step: t.varchar().notNull(),
   data: t.jsonb("data").$type<Record<string, any>>().default({}),
+  createdAt: t.timestamp().notNull().defaultNow(),
+  updatedAt: t.timestamp().notNull().defaultNow(),
+});
+
+export const preferences = pgTable("preferences", {
+  id: t.integer().primaryKey().notNull().generatedAlwaysAsIdentity(),
+  userId: t
+    .integer()
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  ageMin: t.integer(),
+  ageMax: t.integer(),
+  heightMin: t.varchar(),
+  heightMax: t.varchar(),
+  education: t.varchar(),
+  occupation: t.varchar(),
+  city: t.varchar(),
+  citizenship: t.varchar(),
+  caste: t.varchar(),
+  diet: t.varchar(),
+  otherPreferences: t
+    .jsonb("other_preferences")
+    .$type<Record<string, any>>()
+    .default({}),
   createdAt: t.timestamp().notNull().defaultNow(),
   updatedAt: t.timestamp().notNull().defaultNow(),
 });
