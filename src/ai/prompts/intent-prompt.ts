@@ -1,23 +1,7 @@
-import { FlowEvent } from "../../types/intent.types.js";
-
-export function buildMenuIntentPrompt(messageText: string, isAdmin: boolean): string {
-  const availableFlows = isAdmin
-    ? [
-        FlowEvent.SET_PREFERENCES,
-        FlowEvent.FIND_MATCHES,
-        FlowEvent.VIEW_BIO,
-        FlowEvent.DELETE_ACCOUNT,
-        FlowEvent.CREATE_USER,
-        FlowEvent.UPDATE_BIO,
-        FlowEvent.REMOVE_USER,
-      ]
-    : [
-        FlowEvent.SET_PREFERENCES,
-        FlowEvent.FIND_MATCHES,
-        FlowEvent.VIEW_BIO,
-        FlowEvent.DELETE_ACCOUNT,
-      ];
-
+export function buildMenuIntentPrompt(
+  messageText: string,
+  isAdmin: boolean,
+): string {
   const flowExamples = isAdmin
     ? `
 **User Flow Examples**:
@@ -27,6 +11,9 @@ export function buildMenuIntentPrompt(messageText: string, isAdmin: boolean): st
 - "find matches" → FIND_MATCHES (high confidence)
 - "show me some matches" → FIND_MATCHES (high confidence)
 - "looking for matches" → FIND_MATCHES (high confidence)
+- "find me matches with age between 25 to 30" → FIND_MATCHES_WITH_FILTERS (high confidence)
+- "show matches height 5'5 and engineer" → FIND_MATCHES_WITH_FILTERS (high confidence)
+- "find profiles age 28 to 35 from Mumbai" → FIND_MATCHES_WITH_FILTERS (high confidence)
 - "view my bio" → VIEW_BIO (high confidence)
 - "see my profile" → VIEW_BIO (high confidence)
 - "show my biodata" → VIEW_BIO (high confidence)
@@ -51,6 +38,9 @@ export function buildMenuIntentPrompt(messageText: string, isAdmin: boolean): st
 - "find matches" → FIND_MATCHES (high confidence)
 - "show me some matches" → FIND_MATCHES (high confidence)
 - "looking for matches" → FIND_MATCHES (high confidence)
+- "find me matches with age between 25 to 30" → FIND_MATCHES_WITH_FILTERS (high confidence)
+- "show matches height 5'5 and engineer" → FIND_MATCHES_WITH_FILTERS (high confidence)
+- "find profiles age 28 to 35 from Mumbai" → FIND_MATCHES_WITH_FILTERS (high confidence)
 - "view my bio" → VIEW_BIO (high confidence)
 - "see my profile" → VIEW_BIO (high confidence)
 - "show my biodata" → VIEW_BIO (high confidence)

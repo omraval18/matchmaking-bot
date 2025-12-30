@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsc",
-    "start": "node --env-file=.env dist/index.js",
+    "start": "node dist/index.js",
+    "vercel-build": "tsc",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -20,7 +21,6 @@
     "ai": "^6.0.3",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.11.2",
-    "pg": "^8.16.3",
     "zod": "^4.2.1"
   },
   "devDependencies": {

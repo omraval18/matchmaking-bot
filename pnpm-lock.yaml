@@ -32,9 +32,6 @@ importers:
       hono:
         specifier: ^4.11.2
         version: 4.11.2
-      pg:
-        specifier: ^8.16.3
-        version: 8.16.3
       zod:
         specifier: ^4.2.1
         version: 4.2.1
@@ -2096,13 +2093,15 @@ snapshots:
   pg-cloudflare@1.2.7:
     optional: true
 
-  pg-connection-string@2.9.1: {}
+  pg-connection-string@2.9.1:
+    optional: true
 
   pg-int8@1.0.1: {}
 
   pg-pool@3.10.1(pg@8.16.3):
     dependencies:
       pg: 8.16.3
+    optional: true
 
   pg-protocol@1.10.3: {}
 
@@ -2123,10 +2122,12 @@ snapshots:
       pgpass: 1.0.5
     optionalDependencies:
       pg-cloudflare: 1.2.7
+    optional: true
 
   pgpass@1.0.5:
     dependencies:
       split2: 4.2.0
+    optional: true
 
   pkg-types@2.3.0:
     dependencies:
@@ -2238,7 +2239,8 @@ snapshots:
 
   source-map@0.6.1: {}
 
-  split2@4.2.0: {}
+  split2@4.2.0:
+    optional: true
 
   sqlstring@2.3.3:
     optional: true

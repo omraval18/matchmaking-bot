@@ -23,10 +23,7 @@ export class MessageProcessor {
         isAdmin,
       );
 
-      if (
-        intent.event === GlobalEvent.END_FLOW &&
-        intent.confidence >= 0.6
-      ) {
+      if (intent.event === GlobalEvent.END_FLOW && intent.confidence >= 0.6) {
         await this.handleEndCommand(phoneNumber, state !== null);
         return;
       }
@@ -136,13 +133,19 @@ export class MessageProcessor {
       return;
     }
 
-    await this.initializeFlowFromIntent(phoneNumber, intent.event, isAdmin);
+    await this.initializeFlowFromIntent(
+      phoneNumber,
+      intent.event,
+      isAdmin,
+      message,
+    );
   }
 
   private static async initializeFlowFromIntent(
     phoneNumber: string,
     event: string,
     isAdmin: boolean,
+    message: WhatsAppMessage,
   ): Promise<void> {
     try {
       switch (event) {
@@ -174,6 +177,24 @@ export class MessageProcessor {
           await FindMatchesFlow.initialize(phoneNumber);
           break;
 
+        case FlowEvent.FIND_MATCHES_WITH_FILTERS:
+          if (isAdmin) {
+            await WhatsAppService.sendTextMessage(
+              phoneNumber,
+              "Admins don't search for matches. This feature is for users only.",
+            );
+            return;
+          }
+          let messageText = "";
+          if (message.type === "text" && message.text?.body) {
+            messageText = message.text.body;
+          }
+          const { FindMatchesWithFiltersFlow } = await import(
+            "../flows/user/find-matches-with-filters.flow.js"
+          );
+          await FindMatchesWithFiltersFlow.initialize(phoneNumber, messageText);
+          break;
+
         case FlowEvent.VIEW_BIO:
           const { ViewBioFlow } = await import(
             "../flows/user/view-bio.flow.js"
@@ -188,7 +209,6 @@ export class MessageProcessor {
           await DeleteAccountFlow.initialize(phoneNumber);
           break;
 
-        // Admin flows
         case FlowEvent.CREATE_USER:
           if (!isAdmin) {
             await WhatsAppService.sendTextMessage(

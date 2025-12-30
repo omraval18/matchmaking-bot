@@ -1,6 +1,7 @@
 import { db } from "../lib/db/index.js";
 import { bios, users, preferences } from "../lib/db/schema.js";
 import { eq, and, gte, lte, sql, ne } from "drizzle-orm";
+import type { AdHocFilters } from "../types/filter.types.js";
 
 export class MatchService {
   static async findMatches(userId: number, limit: number = 3, offset: number = 0): Promise<any[]> {
@@ -138,6 +139,138 @@ export class MatchService {
     console.log(`[MATCH SERVICE] ✅ Found ${matches.length} matches`);
     if (matches.length > 0) {
       console.log(`[MATCH SERVICE] Match IDs:`, matches.map(m => m.id).join(', '));
+    }
+
+    return matches;
+  }
+
+  static async findMatchesWithAdHocFilters(
+    userId: number,
+    filters: AdHocFilters,
+    limit: number = 3,
+    offset: number = 0
+  ): Promise<any[]> {
+    console.log(`[MATCH SERVICE - AD-HOC] Finding matches for userId: ${userId} with ad-hoc filters`);
+    console.log(`[MATCH SERVICE - AD-HOC] Filters:`, JSON.stringify(filters, null, 2));
+
+    const userBio = await db
+      .select()
+      .from(bios)
+      .where(eq(bios.userId, userId))
+      .limit(1);
+
+    console.log(`[MATCH SERVICE - AD-HOC] User bio found:`, userBio.length > 0 ? `Yes, gender: ${userBio[0].gender}` : 'No');
+
+    if (userBio.length === 0) {
+      console.log(`[MATCH SERVICE - AD-HOC] ❌ No bio found for userId: ${userId}`);
+      return [];
+    }
+
+    const userGender = userBio[0].gender;
+    const oppositeGender = userGender === "Male" ? "Female" : "Male";
+    console.log(`[MATCH SERVICE - AD-HOC] Looking for opposite gender: ${oppositeGender}`);
+
+    const conditions = [
+      eq(bios.gender, oppositeGender),
+      ne(bios.userId, userId),
+    ];
+
+    console.log(`[MATCH SERVICE - AD-HOC] Base conditions: gender=${oppositeGender}, userId!=${userId}`);
+
+    // Apply ad-hoc filters
+    let activeFilters: string[] = [];
+
+    if (filters.ageMin) {
+      conditions.push(gte(bios.age, filters.ageMin));
+      activeFilters.push(`ageMin: ${filters.ageMin}`);
+    }
+
+    if (filters.ageMax) {
+      conditions.push(lte(bios.age, filters.ageMax));
+      activeFilters.push(`ageMax: ${filters.ageMax}`);
+    }
+
+    if (filters.heightMinCm) {
+      conditions.push(gte(bios.heightCm, filters.heightMinCm));
+      activeFilters.push(`heightMinCm: ${filters.heightMinCm}`);
+    }
+
+    if (filters.heightMaxCm) {
+      conditions.push(lte(bios.heightCm, filters.heightMaxCm));
+      activeFilters.push(`heightMaxCm: ${filters.heightMaxCm}`);
+    }
+
+    if (filters.educationLevel) {
+      conditions.push(gte(bios.educationLevel, filters.educationLevel));
+      activeFilters.push(`educationLevel: ${filters.educationLevel}`);
+    }
+
+    if (filters.occupation) {
+      conditions.push(
+        sql`LOWER(${bios.occupation}) LIKE LOWER(${"%" + filters.occupation + "%"})`,
+      );
+      activeFilters.push(`occupation: ${filters.occupation}`);
+    }
+
+    if (filters.city) {
+      conditions.push(
+        sql`(LOWER(${bios.city}) LIKE LOWER(${"%" + filters.city + "%"}) OR LOWER(${bios.currentCity}) LIKE LOWER(${"%" + filters.city + "%"}))`,
+      );
+      activeFilters.push(`city: ${filters.city}`);
+    }
+
+    if (filters.citizenship) {
+      conditions.push(
+        sql`LOWER(${bios.citizenship}) LIKE LOWER(${"%" + filters.citizenship + "%"})`,
+      );
+      activeFilters.push(`citizenship: ${filters.citizenship}`);
+    }
+
+    if (filters.caste) {
+      conditions.push(
+        sql`LOWER(${bios.caste}) LIKE LOWER(${"%" + filters.caste + "%"})`,
+      );
+      activeFilters.push(`caste: ${filters.caste}`);
+    }
+
+    if (filters.diet) {
+      conditions.push(
+        sql`LOWER(${bios.diet}) LIKE LOWER(${"%" + filters.diet + "%"})`,
+      );
+      activeFilters.push(`diet: ${filters.diet}`);
+    }
+
+    console.log(`[MATCH SERVICE - AD-HOC] Active ad-hoc filters:`, activeFilters.length > 0 ? activeFilters.join(', ') : 'None');
+    console.log(`[MATCH SERVICE - AD-HOC] Total conditions: ${conditions.length}`);
+    console.log(`[MATCH SERVICE - AD-HOC] Executing query with limit: ${limit}...`);
+
+    const matches = await db
+      .select({
+        id: bios.id,
+        firstName: bios.firstName,
+        lastName: bios.lastName,
+        gender: bios.gender,
+        age: bios.age,
+        city: bios.city,
+        currentCity: bios.currentCity,
+        citizenship: bios.citizenship,
+        education: bios.education,
+        occupation: bios.occupation,
+        company: bios.company,
+        height: bios.height,
+        diet: bios.diet,
+        caste: bios.caste,
+        phone: users.phone,
+      })
+      .from(bios)
+      .innerJoin(users, eq(bios.userId, users.id))
+      .where(and(...conditions))
+      .offset(offset)
+      .limit(limit);
+
+    console.log(`[MATCH SERVICE - AD-HOC] ✅ Found ${matches.length} matches`);
+    if (matches.length > 0) {
+      console.log(`[MATCH SERVICE - AD-HOC] Match IDs:`, matches.map(m => m.id).join(', '));
     }
 
     return matches;

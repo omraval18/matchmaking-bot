@@ -45,10 +45,13 @@ export class WebhookRoutes {
     MessageDeduplication.markAsProcessed(messageId);
 
     const phoneNumber = message.from;
-    MessageProcessor.process(phoneNumber, message).catch((error) => {
-      console.error("Error processing message:", error);
-    });
 
-    return c.json({ status: "received" });
+    try {
+      await MessageProcessor.process(phoneNumber, message);
+      return c.json({ status: "received" });
+    } catch (error) {
+      console.error("Error processing message:", error);
+      return c.json({ status: "error", message: "Processing failed" });
+    }
   }
 }

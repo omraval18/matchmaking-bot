@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { serve } from "@hono/node-server";
 import { env } from "./env.js";
 import { WebhookRoutes } from "./routes/webhook.routes.js";
 
@@ -16,6 +15,10 @@ app.get("/health", (c) =>
   c.json({ status: "healthy", timestamp: new Date().toISOString() }),
 );
 
-serve(app);
+export default app;
 
-console.log("Server is running and listening for webhooks...");
+if (env.NODE_ENV !== "production") {
+  const { serve } = await import("@hono/node-server");
+  serve(app);
+  console.log("Server is running locally and listening for webhooks...");
+}

@@ -9,6 +9,7 @@ export enum GlobalEvent {
 export enum FlowEvent {
   SET_PREFERENCES = "SET_PREFERENCES",
   FIND_MATCHES = "FIND_MATCHES",
+  FIND_MATCHES_WITH_FILTERS = "FIND_MATCHES_WITH_FILTERS",
   VIEW_BIO = "VIEW_BIO",
   DELETE_ACCOUNT = "DELETE_ACCOUNT",
 
@@ -34,6 +35,7 @@ export const IntentDetectionSchema = z.object({
 
       FlowEvent.SET_PREFERENCES,
       FlowEvent.FIND_MATCHES,
+      FlowEvent.FIND_MATCHES_WITH_FILTERS,
       FlowEvent.VIEW_BIO,
       FlowEvent.DELETE_ACCOUNT,
 
