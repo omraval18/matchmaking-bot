@@ -29,8 +29,17 @@ The JSON object may contain the following fields:
 - heightMax (string or null):
   Maximum height preference (e.g., "6'0\"", "180 cm").
 
-- education (string or null):
-  Educational qualification preference (e.g., "Graduate", "MBA", "Engineer").
+- educationLevel (number or null):
+  Minimum education level preference as integer:
+  * 1 = Below 10th
+  * 2 = 10th Pass
+  * 3 = 12th Pass
+  * 4 = Diploma
+  * 5 = Undergraduate (pursuing)
+  * 6 = Graduate (Bachelor's like BA, BSc, BTech, BBA, BCA, MBBS, etc.)
+  * 7 = Postgraduate (Master's like MA, MSc, MTech, MBA, MCA, MD, MS, etc.)
+  * 8 = Doctorate (PhD)
+  Examples: "at least graduate" → 6, "master's or higher" → 7, "12th pass minimum" → 3
 
 - occupation (string or null):
   Occupation or profession preference.

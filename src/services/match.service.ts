@@ -1,19 +1,28 @@
 import { db } from "../lib/db/index.js";
 import { bios, users, preferences } from "../lib/db/schema.js";
 import { eq, and, gte, lte, sql, ne } from "drizzle-orm";
-import type { AdHocFilters } from "../types/filter.types.js";
+import type { UserPreferences } from "../types/preference.types.js";
 
 export class MatchService {
-  static async findMatches(userId: number, limit: number = 3, offset: number = 0): Promise<any[]> {
-    console.log(`[MATCH SERVICE] Finding matches for userId: ${userId}, limit: ${limit}, offset: ${offset}`);
-    
+  static async findMatches(
+    userId: number,
+    limit: number = 3,
+    offset: number = 0,
+  ): Promise<any[]> {
+    console.log(
+      `[MATCH SERVICE] Finding matches for userId: ${userId}, limit: ${limit}, offset: ${offset}`,
+    );
+
     const userBio = await db
       .select()
       .from(bios)
       .where(eq(bios.userId, userId))
       .limit(1);
 
-    console.log(`[MATCH SERVICE] User bio found:`, userBio.length > 0 ? `Yes, gender: ${userBio[0].gender}` : 'No');
+    console.log(
+      `[MATCH SERVICE] User bio found:`,
+      userBio.length > 0 ? `Yes, gender: ${userBio[0].gender}` : "No",
+    );
 
     if (userBio.length === 0) {
       console.log(`[MATCH SERVICE] ❌ No bio found for userId: ${userId}`);
@@ -22,7 +31,9 @@ export class MatchService {
 
     const userGender = userBio[0].gender;
     const oppositeGender = userGender === "Male" ? "Female" : "Male";
-    console.log(`[MATCH SERVICE] Looking for opposite gender: ${oppositeGender}`);
+    console.log(
+      `[MATCH SERVICE] Looking for opposite gender: ${oppositeGender}`,
+    );
 
     const userPrefs = await db
       .select()
@@ -30,9 +41,15 @@ export class MatchService {
       .where(eq(preferences.userId, userId))
       .limit(1);
 
-    console.log(`[MATCH SERVICE] Preferences found:`, userPrefs.length > 0 ? 'Yes' : 'No');
+    console.log(
+      `[MATCH SERVICE] Preferences found:`,
+      userPrefs.length > 0 ? "Yes" : "No",
+    );
     if (userPrefs.length > 0) {
-      console.log(`[MATCH SERVICE] Preferences:`, JSON.stringify(userPrefs[0], null, 2));
+      console.log(
+        `[MATCH SERVICE] Preferences:`,
+        JSON.stringify(userPrefs[0], null, 2),
+      );
     }
 
     const conditions = [
@@ -40,7 +57,9 @@ export class MatchService {
       ne(bios.userId, userId),
     ];
 
-    console.log(`[MATCH SERVICE] Base conditions: gender=${oppositeGender}, userId!=${userId}`);
+    console.log(
+      `[MATCH SERVICE] Base conditions: gender=${oppositeGender}, userId!=${userId}`,
+    );
 
     if (userPrefs.length > 0) {
       const prefs = userPrefs[0];
@@ -106,7 +125,10 @@ export class MatchService {
         activeFilters.push(`diet: ${prefs.diet}`);
       }
 
-      console.log(`[MATCH SERVICE] Active preference filters:`, activeFilters.length > 0 ? activeFilters.join(', ') : 'None (all null)');
+      console.log(
+        `[MATCH SERVICE] Active preference filters:`,
+        activeFilters.length > 0 ? activeFilters.join(", ") : "None (all null)",
+      );
     }
 
     console.log(`[MATCH SERVICE] Total conditions: ${conditions.length}`);
@@ -138,7 +160,10 @@ export class MatchService {
 
     console.log(`[MATCH SERVICE] ✅ Found ${matches.length} matches`);
     if (matches.length > 0) {
-      console.log(`[MATCH SERVICE] Match IDs:`, matches.map(m => m.id).join(', '));
+      console.log(
+        `[MATCH SERVICE] Match IDs:`,
+        matches.map((m) => m.id).join(", "),
+      );
     }
 
     return matches;
@@ -146,12 +171,17 @@ export class MatchService {
 
   static async findMatchesWithAdHocFilters(
     userId: number,
-    filters: AdHocFilters,
+    filters: UserPreferences,
     limit: number = 3,
-    offset: number = 0
+    offset: number = 0,
   ): Promise<any[]> {
-    console.log(`[MATCH SERVICE - AD-HOC] Finding matches for userId: ${userId} with ad-hoc filters`);
-    console.log(`[MATCH SERVICE - AD-HOC] Filters:`, JSON.stringify(filters, null, 2));
+    console.log(
+      `[MATCH SERVICE - AD-HOC] Finding matches for userId: ${userId} with ad-hoc filters`,
+    );
+    console.log(
+      `[MATCH SERVICE - AD-HOC] Filters:`,
+      JSON.stringify(filters, null, 2),
+    );
 
     const userBio = await db
       .select()
@@ -159,23 +189,32 @@ export class MatchService {
       .where(eq(bios.userId, userId))
       .limit(1);
 
-    console.log(`[MATCH SERVICE - AD-HOC] User bio found:`, userBio.length > 0 ? `Yes, gender: ${userBio[0].gender}` : 'No');
+    console.log(
+      `[MATCH SERVICE - AD-HOC] User bio found:`,
+      userBio.length > 0 ? `Yes, gender: ${userBio[0].gender}` : "No",
+    );
 
     if (userBio.length === 0) {
-      console.log(`[MATCH SERVICE - AD-HOC] ❌ No bio found for userId: ${userId}`);
+      console.log(
+        `[MATCH SERVICE - AD-HOC] ❌ No bio found for userId: ${userId}`,
+      );
       return [];
     }
 
     const userGender = userBio[0].gender;
     const oppositeGender = userGender === "Male" ? "Female" : "Male";
-    console.log(`[MATCH SERVICE - AD-HOC] Looking for opposite gender: ${oppositeGender}`);
+    console.log(
+      `[MATCH SERVICE - AD-HOC] Looking for opposite gender: ${oppositeGender}`,
+    );
 
     const conditions = [
       eq(bios.gender, oppositeGender),
       ne(bios.userId, userId),
     ];
 
-    console.log(`[MATCH SERVICE - AD-HOC] Base conditions: gender=${oppositeGender}, userId!=${userId}`);
+    console.log(
+      `[MATCH SERVICE - AD-HOC] Base conditions: gender=${oppositeGender}, userId!=${userId}`,
+    );
 
     // Apply ad-hoc filters
     let activeFilters: string[] = [];
@@ -240,9 +279,16 @@ export class MatchService {
       activeFilters.push(`diet: ${filters.diet}`);
     }
 
-    console.log(`[MATCH SERVICE - AD-HOC] Active ad-hoc filters:`, activeFilters.length > 0 ? activeFilters.join(', ') : 'None');
-    console.log(`[MATCH SERVICE - AD-HOC] Total conditions: ${conditions.length}`);
-    console.log(`[MATCH SERVICE - AD-HOC] Executing query with limit: ${limit}...`);
+    console.log(
+      `[MATCH SERVICE - AD-HOC] Active ad-hoc filters:`,
+      activeFilters.length > 0 ? activeFilters.join(", ") : "None",
+    );
+    console.log(
+      `[MATCH SERVICE - AD-HOC] Total conditions: ${conditions.length}`,
+    );
+    console.log(
+      `[MATCH SERVICE - AD-HOC] Executing query with limit: ${limit}...`,
+    );
 
     const matches = await db
       .select({
@@ -270,7 +316,10 @@ export class MatchService {
 
     console.log(`[MATCH SERVICE - AD-HOC] ✅ Found ${matches.length} matches`);
     if (matches.length > 0) {
-      console.log(`[MATCH SERVICE - AD-HOC] Match IDs:`, matches.map(m => m.id).join(', '));
+      console.log(
+        `[MATCH SERVICE - AD-HOC] Match IDs:`,
+        matches.map((m) => m.id).join(", "),
+      );
     }
 
     return matches;

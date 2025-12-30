@@ -1,9 +1,12 @@
 import { WhatsAppService } from "../../services/whatsapp.service.js";
 import { UserService } from "../../services/user.service.js";
 import { MatchService } from "../../services/match.service.js";
-import { filterExtractionAgent } from "../../ai/filter-extraction-agent.js";
-import { buildFilterExtractionPrompt } from "../../ai/prompts/filter-extraction-prompt.js";
-import type { AdHocFilters } from "../../types/filter.types.js";
+import {
+  preferenceExtractionAgent,
+  normalizePreferences,
+} from "../../ai/preference-extraction-agent.js";
+import { PREFERENCE_EXTRACTION_PROMPT } from "../../ai/prompts/preference-extraction-prompt.js";
+import type { UserPreferences } from "../../types/preference.types.js";
 
 export class FindMatchesWithFiltersFlow {
   static async initialize(
@@ -37,50 +40,33 @@ export class FindMatchesWithFiltersFlow {
         "🔍 Analyzing your filter requirements...",
       );
 
-      const prompt = buildFilterExtractionPrompt(messageText);
-      const result = await filterExtractionAgent.generate({ prompt });
+      const result = await preferenceExtractionAgent.generate({
+        prompt: `${PREFERENCE_EXTRACTION_PROMPT}\n\nUSER INPUT:\n${messageText}`,
+      });
 
       console.log(
         `[FIND MATCHES WITH FILTERS FLOW] Extracted filters:`,
         JSON.stringify(result.output, null, 2),
       );
 
-      const filters: AdHocFilters = {};
-      if (result.output.ageMin !== null && result.output.ageMin !== undefined)
-        filters.ageMin = result.output.ageMin;
-      if (result.output.ageMax !== null && result.output.ageMax !== undefined)
-        filters.ageMax = result.output.ageMax;
-      if (
-        result.output.heightMinCm !== null &&
-        result.output.heightMinCm !== undefined
-      )
-        filters.heightMinCm = result.output.heightMinCm;
-      if (
-        result.output.heightMaxCm !== null &&
-        result.output.heightMaxCm !== undefined
-      )
-        filters.heightMaxCm = result.output.heightMaxCm;
-      if (
-        result.output.educationLevel !== null &&
-        result.output.educationLevel !== undefined
-      )
-        filters.educationLevel = result.output.educationLevel;
-      if (
-        result.output.occupation !== null &&
-        result.output.occupation !== undefined
-      )
-        filters.occupation = result.output.occupation;
-      if (result.output.city !== null && result.output.city !== undefined)
-        filters.city = result.output.city;
-      if (
-        result.output.citizenship !== null &&
-        result.output.citizenship !== undefined
-      )
-        filters.citizenship = result.output.citizenship;
-      if (result.output.caste !== null && result.output.caste !== undefined)
-        filters.caste = result.output.caste;
-      if (result.output.diet !== null && result.output.diet !== undefined)
-        filters.diet = result.output.diet;
+      const normalized = normalizePreferences(result.output);
+
+      const filters: UserPreferences = {};
+      if (normalized.ageMin !== null) filters.ageMin = normalized.ageMin;
+      if (normalized.ageMax !== null) filters.ageMax = normalized.ageMax;
+      if (normalized.heightMinCm !== null)
+        filters.heightMinCm = normalized.heightMinCm;
+      if (normalized.heightMaxCm !== null)
+        filters.heightMaxCm = normalized.heightMaxCm;
+      if (normalized.educationLevel !== null)
+        filters.educationLevel = normalized.educationLevel;
+      if (normalized.occupation !== null)
+        filters.occupation = normalized.occupation;
+      if (normalized.city !== null) filters.city = normalized.city;
+      if (normalized.citizenship !== null)
+        filters.citizenship = normalized.citizenship;
+      if (normalized.caste !== null) filters.caste = normalized.caste;
+      if (normalized.diet !== null) filters.diet = normalized.diet;
 
       if (Object.keys(filters).length === 0) {
         await WhatsAppService.sendTextMessage(
@@ -177,8 +163,6 @@ export class FindMatchesWithFiltersFlow {
     for (const match of matches) {
       const matchMessage = MatchService.formatMatchResult(match);
       await WhatsAppService.sendTextMessage(userPhone, matchMessage);
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 }
