@@ -5,6 +5,44 @@ const PHONE_NUMBER_ID = env.WA_PHONE_NUMBER_ID;
 
 export class WhatsAppService {
   private static readonly BASE_URL = `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}`;
+  private static activeTypingIndicators = new Map<string, NodeJS.Timeout>();
+
+  static async showTypingIndicator(to: string, messageId: string): Promise<void> {
+    try {
+      await fetch(`${this.BASE_URL}/messages`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          status: "read",
+          message_id: messageId,
+          typing_indicator: {
+            type: "text",
+          },
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to show typing indicator:", error);
+    }
+  }
+
+  static startTypingIndicator(to: string, messageId: string): () => void {
+    this.showTypingIndicator(to, messageId);
+
+    const intervalId = setInterval(() => {
+      this.showTypingIndicator(to, messageId);
+    }, 20000);
+
+    this.activeTypingIndicators.set(messageId, intervalId);
+
+    return () => {
+      clearInterval(intervalId);
+      this.activeTypingIndicators.delete(messageId);
+    };
+  }
 
   static async sendTextMessage(to: string, text: string): Promise<void> {
     const response = await fetch(`${this.BASE_URL}/messages`, {

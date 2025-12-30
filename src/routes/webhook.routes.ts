@@ -3,6 +3,7 @@ import { env } from "../env.js";
 import type { WhatsAppWebhookPayload } from "../types/whatsapp.types.js";
 import { MessageDeduplication } from "../utils/message-deduplication.utils.js";
 import { MessageProcessor } from "./message-processor.js";
+import { WhatsAppService } from "../services/whatsapp.service.js";
 
 const VERIFY_TOKEN = env.WA_VERIFY_TOKEN;
 
@@ -45,6 +46,7 @@ export class WebhookRoutes {
     MessageDeduplication.markAsProcessed(messageId);
 
     const phoneNumber = message.from;
+    const stopTyping = WhatsAppService.startTypingIndicator(phoneNumber, messageId);
 
     try {
       await MessageProcessor.process(phoneNumber, message);
@@ -52,6 +54,8 @@ export class WebhookRoutes {
     } catch (error) {
       console.error("Error processing message:", error);
       return c.json({ status: "error", message: "Processing failed" });
+    } finally {
+      stopTyping();
     }
   }
 }
