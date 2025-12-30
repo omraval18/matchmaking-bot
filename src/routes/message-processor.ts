@@ -286,7 +286,6 @@ export class MessageProcessor {
         { id: "SET_PREFERENCES", title: "Set Preferences" },
         { id: "FIND_MATCHES", title: "Find Matches" },
         { id: "VIEW_BIO", title: "View My Bio" },
-        { id: "DELETE_ACCOUNT", title: "Delete Account" },
       ],
     );
   }
