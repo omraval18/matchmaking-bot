@@ -39,19 +39,12 @@ export class UpdateBiodataFlow {
       return;
     }
 
-    const validatedPhone = ValidationUtils.validatePhoneNumber(
+    const validatedPhone = await ValidationUtils.validatePhoneOrNotify(
+      adminPhone,
       message.text.body,
     );
+    if (!validatedPhone) return;
 
-    if (!validatedPhone) {
-      await WhatsAppService.sendTextMessage(
-        adminPhone,
-        "Please enter a valid phone number with country code (e.g., 917779088399)",
-      );
-      return;
-    }
-
-    // Check if user exists
     const user = await UserService.getUserByPhone(validatedPhone);
 
     if (!user) {

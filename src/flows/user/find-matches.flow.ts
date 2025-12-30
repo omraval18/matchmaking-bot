@@ -35,7 +35,7 @@ export class FindMatchesFlow {
         `[FIND MATCHES FLOW] Calling MatchService.findMatches for userId: ${user.id}`,
       );
       // Fetch 4 matches to check if there are more available
-      const allMatches = await MatchService.findMatches(user.id, 4);
+      const allMatches = await MatchService.findMatches(user.id, { limit: 4 });
       console.log(
         `[FIND MATCHES FLOW] Received ${allMatches.length} matches from service`,
       );
@@ -138,11 +138,10 @@ export class FindMatchesFlow {
         const matchesShown = (data.matchesShown as number) || 3;
 
         // Fetch 4 matches to check if there are more available beyond these 3
-        const allMatches = await MatchService.findMatches(
-          user.id,
-          4,
-          matchesShown,
-        );
+        const allMatches = await MatchService.findMatches(user.id, {
+          limit: 4,
+          offset: matchesShown,
+        });
 
         if (allMatches.length === 0) {
           await WhatsAppService.sendTextMessage(

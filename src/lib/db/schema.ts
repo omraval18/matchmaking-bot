@@ -34,17 +34,6 @@ export const bios = pgTable("bios", {
   url: t.varchar().notNull(),
 });
 
-export const lastMessages = pgTable("last_messages", {
-  id: t.integer().primaryKey().notNull().generatedAlwaysAsIdentity(),
-  userId: t
-    .integer()
-    .notNull()
-    .unique()
-    .references(() => users.id, { onDelete: "cascade" }),
-  message: t.text().notNull(),
-  timestamp: t.timestamp().notNull().defaultNow(),
-});
-
 export const conversationStates = pgTable("conversation_states", {
   id: t.integer().primaryKey().notNull().generatedAlwaysAsIdentity(),
   phone: t.varchar().notNull().unique(),

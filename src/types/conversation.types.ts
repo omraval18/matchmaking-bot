@@ -23,10 +23,3 @@ export interface ConversationState {
   createdAt: Date;
   updatedAt: Date;
 }
-
-export interface FlowData {
-  newUserPhone?: string;
-  newUserId?: number;
-  targetUserPhone?: string;
-  targetUserId?: number;
-}

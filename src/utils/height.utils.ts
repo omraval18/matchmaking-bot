@@ -1,10 +1,4 @@
-export interface HeightConversion {
-  cm: number;
-  feet: number;
-  inches: number;
-}
-
-export function feetInchesToCm(feet: number, inches: number = 0): number {
+function feetInchesToCm(feet: number, inches: number = 0): number {
   const totalInches = feet * 12 + inches;
   return Math.round(totalInches * 2.54);
 }

@@ -106,13 +106,12 @@ export class FindMatchesWithFiltersFlow {
       );
 
       console.log(
-        `[FIND MATCHES WITH FILTERS FLOW] Calling MatchService.findMatchesWithAdHocFilters for userId: ${user.id}`,
+        `[FIND MATCHES WITH FILTERS FLOW] Calling MatchService.findMatches for userId: ${user.id}`,
       );
-      const matches = await MatchService.findMatchesWithAdHocFilters(
-        user.id,
+      const matches = await MatchService.findMatches(user.id, {
         filters,
-        3,
-      );
+        limit: 3,
+      });
       console.log(
         `[FIND MATCHES WITH FILTERS FLOW] Received ${matches.length} matches from service`,
       );

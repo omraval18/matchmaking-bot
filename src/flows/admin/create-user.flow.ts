@@ -39,17 +39,11 @@ export class CreateUserFlow {
       return;
     }
 
-    const validatedPhone = ValidationUtils.validatePhoneNumber(
+    const validatedPhone = await ValidationUtils.validatePhoneOrNotify(
+      adminPhone,
       message.text.body,
     );
-
-    if (!validatedPhone) {
-      await WhatsAppService.sendTextMessage(
-        adminPhone,
-        "Please enter a valid phone number with country code (e.g., 917779088399)",
-      );
-      return;
-    }
+    if (!validatedPhone) return;
 
     const userExists = await UserService.userExists(validatedPhone);
 
