@@ -1,9 +1,82 @@
 import { db } from "../lib/db/index.js";
 import { bios, users, preferences } from "../lib/db/schema.js";
-import { eq, and, gte, lte, sql, ne } from "drizzle-orm";
+import { eq, and, gte, lte, sql, ne, type SQL } from "drizzle-orm";
 import type { UserPreferences } from "../types/preference.types.js";
 
 export class MatchService {
+  private static applyFilters(
+    conditions: SQL[],
+    filters: UserPreferences,
+    logPrefix: string = "[MATCH SERVICE]",
+  ): void {
+    const activeFilters: string[] = [];
+
+    if (filters.ageMin) {
+      conditions.push(gte(bios.age, filters.ageMin));
+      activeFilters.push(`ageMin: ${filters.ageMin}`);
+    }
+
+    if (filters.ageMax) {
+      conditions.push(lte(bios.age, filters.ageMax));
+      activeFilters.push(`ageMax: ${filters.ageMax}`);
+    }
+
+    if (filters.heightMinCm) {
+      conditions.push(gte(bios.heightCm, filters.heightMinCm));
+      activeFilters.push(`heightMinCm: ${filters.heightMinCm}`);
+    }
+
+    if (filters.heightMaxCm) {
+      conditions.push(lte(bios.heightCm, filters.heightMaxCm));
+      activeFilters.push(`heightMaxCm: ${filters.heightMaxCm}`);
+    }
+
+    if (filters.educationLevel) {
+      conditions.push(gte(bios.educationLevel, filters.educationLevel));
+      activeFilters.push(`educationLevel: ${filters.educationLevel}`);
+    }
+
+    if (filters.occupation) {
+      conditions.push(
+        sql`LOWER(${bios.occupation}) LIKE LOWER(${"%" + filters.occupation + "%"})`,
+      );
+      activeFilters.push(`occupation: ${filters.occupation}`);
+    }
+
+    if (filters.city) {
+      conditions.push(
+        sql`(LOWER(${bios.city}) LIKE LOWER(${"%" + filters.city + "%"}) OR LOWER(${bios.currentCity}) LIKE LOWER(${"%" + filters.city + "%"}))`,
+      );
+      activeFilters.push(`city: ${filters.city}`);
+    }
+
+    if (filters.citizenship) {
+      conditions.push(
+        sql`LOWER(${bios.citizenship}) LIKE LOWER(${"%" + filters.citizenship + "%"})`,
+      );
+      activeFilters.push(`citizenship: ${filters.citizenship}`);
+    }
+
+    if (filters.caste) {
+      conditions.push(
+        sql`LOWER(${bios.caste}) LIKE LOWER(${"%" + filters.caste + "%"})`,
+      );
+      activeFilters.push(`caste: ${filters.caste}`);
+    }
+
+    if (filters.diet) {
+      conditions.push(
+        sql`LOWER(${bios.diet}) LIKE LOWER(${"%" + filters.diet + "%"})`,
+      );
+      activeFilters.push(`diet: ${filters.diet}`);
+    }
+
+    console.log(
+      `${logPrefix} Active filters:`,
+      activeFilters.length > 0 ? activeFilters.join(", ") : "None",
+    );
+  }
+
   static async findMatches(
     userId: number,
     limit: number = 3,
@@ -41,6 +114,20 @@ export class MatchService {
       .where(eq(preferences.userId, userId))
       .limit(1);
 
+    const formattedPreferences = {
+      ageMin: userPrefs[0]?.ageMin || undefined,
+      ageMax: userPrefs[0]?.ageMax || undefined,
+      heightMinCm: userPrefs[0]?.heightMinCm || undefined,
+      heightMaxCm: userPrefs[0]?.heightMaxCm || undefined,
+      educationLevel: userPrefs[0]?.educationLevel || undefined,
+      occupation: userPrefs[0]?.occupation || undefined,
+      city: userPrefs[0]?.city || undefined,
+      citizenship: userPrefs[0]?.citizenship || undefined,
+      caste: userPrefs[0]?.caste || undefined,
+      diet: userPrefs[0]?.diet || undefined,
+      otherPreferences: userPrefs[0]?.otherPreferences || {},
+    };
+
     console.log(
       `[MATCH SERVICE] Preferences found:`,
       userPrefs.length > 0 ? "Yes" : "No",
@@ -52,7 +139,7 @@ export class MatchService {
       );
     }
 
-    const conditions = [
+    const conditions: SQL[] = [
       eq(bios.gender, oppositeGender),
       ne(bios.userId, userId),
     ];
@@ -62,73 +149,7 @@ export class MatchService {
     );
 
     if (userPrefs.length > 0) {
-      const prefs = userPrefs[0];
-      let activeFilters = [];
-
-      if (prefs.ageMin) {
-        conditions.push(gte(bios.age, prefs.ageMin));
-        activeFilters.push(`ageMin: ${prefs.ageMin}`);
-      }
-
-      if (prefs.ageMax) {
-        conditions.push(lte(bios.age, prefs.ageMax));
-        activeFilters.push(`ageMax: ${prefs.ageMax}`);
-      }
-
-      if (prefs.heightMinCm) {
-        conditions.push(gte(bios.heightCm, prefs.heightMinCm));
-        activeFilters.push(`heightMinCm: ${prefs.heightMinCm}`);
-      }
-
-      if (prefs.heightMaxCm) {
-        conditions.push(lte(bios.heightCm, prefs.heightMaxCm));
-        activeFilters.push(`heightMaxCm: ${prefs.heightMaxCm}`);
-      }
-
-      if (prefs.educationLevel) {
-        conditions.push(gte(bios.educationLevel, prefs.educationLevel));
-        activeFilters.push(`educationLevel: ${prefs.educationLevel}`);
-      }
-
-      if (prefs.occupation) {
-        conditions.push(
-          sql`LOWER(${bios.occupation}) LIKE LOWER(${"%" + prefs.occupation + "%"})`,
-        );
-        activeFilters.push(`occupation: ${prefs.occupation}`);
-      }
-
-      if (prefs.city) {
-        conditions.push(
-          sql`(LOWER(${bios.city}) LIKE LOWER(${"%" + prefs.city + "%"}) OR LOWER(${bios.currentCity}) LIKE LOWER(${"%" + prefs.city + "%"}))`,
-        );
-        activeFilters.push(`city: ${prefs.city}`);
-      }
-
-      if (prefs.citizenship) {
-        conditions.push(
-          sql`LOWER(${bios.citizenship}) LIKE LOWER(${"%" + prefs.citizenship + "%"})`,
-        );
-        activeFilters.push(`citizenship: ${prefs.citizenship}`);
-      }
-
-      if (prefs.caste) {
-        conditions.push(
-          sql`LOWER(${bios.caste}) LIKE LOWER(${"%" + prefs.caste + "%"})`,
-        );
-        activeFilters.push(`caste: ${prefs.caste}`);
-      }
-
-      if (prefs.diet) {
-        conditions.push(
-          sql`LOWER(${bios.diet}) LIKE LOWER(${"%" + prefs.diet + "%"})`,
-        );
-        activeFilters.push(`diet: ${prefs.diet}`);
-      }
-
-      console.log(
-        `[MATCH SERVICE] Active preference filters:`,
-        activeFilters.length > 0 ? activeFilters.join(", ") : "None (all null)",
-      );
+      this.applyFilters(conditions, formattedPreferences, "[MATCH SERVICE]");
     }
 
     console.log(`[MATCH SERVICE] Total conditions: ${conditions.length}`);
@@ -207,7 +228,7 @@ export class MatchService {
       `[MATCH SERVICE - AD-HOC] Looking for opposite gender: ${oppositeGender}`,
     );
 
-    const conditions = [
+    const conditions: SQL[] = [
       eq(bios.gender, oppositeGender),
       ne(bios.userId, userId),
     ];
@@ -217,72 +238,8 @@ export class MatchService {
     );
 
     // Apply ad-hoc filters
-    let activeFilters: string[] = [];
+    this.applyFilters(conditions, filters, "[MATCH SERVICE - AD-HOC]");
 
-    if (filters.ageMin) {
-      conditions.push(gte(bios.age, filters.ageMin));
-      activeFilters.push(`ageMin: ${filters.ageMin}`);
-    }
-
-    if (filters.ageMax) {
-      conditions.push(lte(bios.age, filters.ageMax));
-      activeFilters.push(`ageMax: ${filters.ageMax}`);
-    }
-
-    if (filters.heightMinCm) {
-      conditions.push(gte(bios.heightCm, filters.heightMinCm));
-      activeFilters.push(`heightMinCm: ${filters.heightMinCm}`);
-    }
-
-    if (filters.heightMaxCm) {
-      conditions.push(lte(bios.heightCm, filters.heightMaxCm));
-      activeFilters.push(`heightMaxCm: ${filters.heightMaxCm}`);
-    }
-
-    if (filters.educationLevel) {
-      conditions.push(gte(bios.educationLevel, filters.educationLevel));
-      activeFilters.push(`educationLevel: ${filters.educationLevel}`);
-    }
-
-    if (filters.occupation) {
-      conditions.push(
-        sql`LOWER(${bios.occupation}) LIKE LOWER(${"%" + filters.occupation + "%"})`,
-      );
-      activeFilters.push(`occupation: ${filters.occupation}`);
-    }
-
-    if (filters.city) {
-      conditions.push(
-        sql`(LOWER(${bios.city}) LIKE LOWER(${"%" + filters.city + "%"}) OR LOWER(${bios.currentCity}) LIKE LOWER(${"%" + filters.city + "%"}))`,
-      );
-      activeFilters.push(`city: ${filters.city}`);
-    }
-
-    if (filters.citizenship) {
-      conditions.push(
-        sql`LOWER(${bios.citizenship}) LIKE LOWER(${"%" + filters.citizenship + "%"})`,
-      );
-      activeFilters.push(`citizenship: ${filters.citizenship}`);
-    }
-
-    if (filters.caste) {
-      conditions.push(
-        sql`LOWER(${bios.caste}) LIKE LOWER(${"%" + filters.caste + "%"})`,
-      );
-      activeFilters.push(`caste: ${filters.caste}`);
-    }
-
-    if (filters.diet) {
-      conditions.push(
-        sql`LOWER(${bios.diet}) LIKE LOWER(${"%" + filters.diet + "%"})`,
-      );
-      activeFilters.push(`diet: ${filters.diet}`);
-    }
-
-    console.log(
-      `[MATCH SERVICE - AD-HOC] Active ad-hoc filters:`,
-      activeFilters.length > 0 ? activeFilters.join(", ") : "None",
-    );
     console.log(
       `[MATCH SERVICE - AD-HOC] Total conditions: ${conditions.length}`,
     );
